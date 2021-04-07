@@ -1,131 +1,61 @@
-# -*- cmake -*- -----------------------------------------------------------
-# @@COPYRIGHT@@
-#*-------------------------------------------------------------------------
-# @file
-# @brief
+#
+# Copyright Barco N.V. All Rights Reserved.
+#
+message(STATUS "\n-- || Processing cml - starting")
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4 FATAL_ERROR)
-PROJECT(CML)
+cmake_minimum_required( VERSION 3.14 )
+project( cml VERSION 1.0.3 )
 
-# Build the current CML version number:
-SET(CML_MAJOR 1)
-SET(CML_MINOR 0)
-SET(CML_PATCH 3)
-SET(CML_RELEASE_VERSION "${CML_MAJOR}.${CML_MINOR}.${CML_PATCH}")
-SET(CML_FILE_VERSION "${CML_MAJOR}_${CML_MINOR}_${CML_PATCH}")
+########################################################################
+# cml header only library
+########################################################################
+add_library(cml INTERFACE)
+add_library(cml::cml ALIAS cml )
 
-# Handy message:
-MESSAGE(STATUS "Building CML ${CML_RELEASE_VERSION}")
+target_include_directories(cml  SYSTEM INTERFACE # TODO_MADAU: is SYSTEM needed
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>  
+)
 
-SET(CMAKE_MODULE_PATH ${CML_SOURCE_DIR}/CMake)
+########################################################################
+# Installation
+########################################################################
+include(GNUInstallDirs) # provides CMAKE_INSTALL_{INCLUDE|LIB|BIN}DIR variables
+include(CMakePackageConfigHelpers) # provides write_basic_package_version_file()
 
-# XXX Importing build settings for a header-only library leads to annoying
-# "Setting CML_BUILD_TYPE to T" warnings:
-# Installation configuration:
-#INCLUDE(CMakeExportBuildSettings)
-IF(WIN32)
 
-  # The paths relative to the installation path into which libraries and
-  # headers should be installed for Windows builds (there are currently no
-  # libraries to install):
-  SET(CML_LIBARARY_PATH)
-  SET(CML_HEADER_PATH)
-ELSE(WIN32)
+#### Copy header files ####
+install(DIRECTORY cml
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h"
+)
 
-  # The paths relative to the installation path into which libraries and
-  # headers should be installed for UNIX-like builds (there are currently
-  # no libraries to install):
-  SET(CML_LIBARARY_PATH lib)
-  SET(CML_HEADER_PATH include)
-ENDIF(WIN32)
+### cmake files ###
+# Create cmlConfigVersion.cmake
+set( version_config "${CMAKE_CURRENT_BINARY_DIR}/cmlConfigVersion.cmake" )
+write_basic_package_version_file( "${version_config}"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion )
 
-# Build examples by default:
-OPTION(BUILD_EXAMPLES "Build CML examples." ON)
-SET(CML_BUILD_EXAMPLES ${BUILD_EXAMPLES})
+# Create cmlTargets.cmake
+install( TARGETS cml
+    EXPORT cmlConfigTargets
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cml )
+export( TARGETS cml NAMESPACE cml:: FILE cmlTargets.cmake )
 
-# Don't build tests by default:
-OPTION(BUILD_TESTS "Build CML tests." OFF)
-SET(CML_BUILD_TESTS ${BUILD_TESTS})
+# Install files
+if( WIN32 AND NOT CYGWIN)
+    set( CONFIG_LOC CMake )
+else( )
+    set( CONFIG_LOC "${CMAKE_INSTALL_LIBDIR}/cmake/cml" )
+endif( )
+install( EXPORT cmlConfigTargets
+  FILE cmlTargets.cmake
+  NAMESPACE cml::
+  DESTINATION ${CONFIG_LOC} )
 
-# Include the source CML headers before others:
-INCLUDE_DIRECTORIES(BEFORE ${CML_SOURCE_DIR} ${CML_BINARY_DIR})
+install (
+  FILES CMake/cmlConfig.cmake "${version_config}"
+  DESTINATION ${CONFIG_LOC})
 
-# Add subdirectories to build:
-ADD_SUBDIRECTORY(cml)
-IF(CML_BUILD_EXAMPLES)
-  ADD_SUBDIRECTORY(examples)
-ENDIF(CML_BUILD_EXAMPLES)
-IF(CML_BUILD_TESTS)
-  ADD_SUBDIRECTORY(tests)
-ENDIF(CML_BUILD_TESTS)
-
-# Setup configuration files:
-CONFIGURE_FILE(
-  ${CML_SOURCE_DIR}/UseCML.cmake.in
-  ${CML_BINARY_DIR}/UseCML.cmake
-  @ONLY
-  )
-
-CONFIGURE_FILE(
-  ${CML_SOURCE_DIR}/CMLConfig.cmake.in
-  ${CML_BINARY_DIR}/CMLConfig.cmake
-  @ONLY
-  )
-
-# XXX Importing build settings for a header-only library leads to annoying
-# "Setting CML_BUILD_TYPE to T" warnings:
-# CMAKE_EXPORT_BUILD_SETTINGS(
-#   ${CML_BINARY_DIR}/CMLBuildSettings.cmake)
-# INSTALL(FILES
-#   ${CML_BINARY_DIR}/CMLBuildSettings.cmake
-#   DESTINATION .
-#   )
-
-INSTALL(FILES
-  ${CML_BINARY_DIR}/UseCML.cmake
-  ${CML_BINARY_DIR}/CMLConfig.cmake
-  DESTINATION .
-  )
-
-INSTALL(FILES
-  ${CML_SOURCE_DIR}/doc/parameters.txt
-  DESTINATION doc
-  )
-
-INSTALL(FILES
-  ${CML_SOURCE_DIR}/examples/simple.cpp
-  ${CML_SOURCE_DIR}/examples/cml_config.h
-  ${CML_SOURCE_DIR}/examples/makefile
-  ${CML_SOURCE_DIR}/examples/CMakeLists.txt
-  DESTINATION examples
-  )
-
-# Setup CPack:
-IF(WIN32 AND NOT UNIX)
-
-  # Build ZIP and NSIS packages:
-  SET(CPACK_GENERATOR "NSIS;ZIP")
-
-  # Set the name used by NSIS to refer to the project:
-  SET(CPACK_NSIS_DISPLAY_NAME "CML ${CML_RELEASE_VERSION}")
-  SET(CPACK_PACKAGE_VERSION_MAJOR ${CML_MAJOR})
-  SET(CPACK_PACKAGE_VERSION_MINOR ${CML_MINOR})
-  SET(CPACK_PACKAGE_VERSION_PATCH ${CML_PATCH})
-
-  SET(CPACK_PACKAGE_FILE_NAME "cml-${CML_FILE_VERSION}")
-  SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Configurable Math Libary")
-  SET(CPACK_PACKAGE_VENDOR "Jesse Krebs, Demian Nave")
-  SET(CPACK_PACKAGE_INSTALL_DIRECTORY "cml-${CML_FILE_VERSION}")
-  #SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CML_SOURCE_DIR}/About.txt")
-  #SET(CPACK_PACKAGE_ICON "${CML_SOURCE_DIR}/<icon>")
-  #SET(CPACK_PACKAGE_EXECUTABLES "" "")
-
-  #SET(CPACK_RESOURCE_FILE_WELCOME "${CML_SOURCE_DIR}/Welcome.txt")
-  SET(CPACK_RESOURCE_FILE_LICENSE "${CML_SOURCE_DIR}/LICENSE.rtf")
-  #SET(CPACK_RESOURCE_FILE_README "${CML_SOURCE_DIR}/README.txt")
-
-  INCLUDE(CPack)
-ENDIF(WIN32 AND NOT UNIX)
-
-# --------------------------------------------------------------------------
-# vim:ft=cmake
+message(STATUS "|| Processing project cml - finished\n")
