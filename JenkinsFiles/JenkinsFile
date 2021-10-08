@@ -1,0 +1,5 @@
+@Library('csbld-jenkins@release/5.1.x')
+import com.barco.clickshare.Pipelines
+
+Pipelines pipelines = new Pipelines()
+pipelines.conanParallelPipeline("cml")
