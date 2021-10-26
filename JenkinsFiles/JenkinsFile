@@ -1,5 +1,9 @@
-@Library('csbld-jenkins@release/5.1.x')
+@Library('csbld-jenkins@release/5.4.x')
 import com.barco.clickshare.Pipelines
 
+def platforms = [:]
+conan.addDefaultDesktopPlatforms(platforms)
+conan.addDefaultBarcoPlatforms(platforms)
+
 Pipelines pipelines = new Pipelines()
-pipelines.conanParallelPipeline("cml")
+pipelines.conanParallelPipeline("cml", platforms)
