@@ -6,7 +6,7 @@ class CmlConan(ConanFile):
     url = "https://git.barco.com/projects/BAT/repos/3rd_cml"
     license = "Boost Software License - Version 1.0"
     description = "Vector math library"
-    settings = "os", "compiler", "build_type", "arch"
+    settings = []
     exports_sources = "cml/*", "CMakeLists.txt"
 
     def package_id(self):
